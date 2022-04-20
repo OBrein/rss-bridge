@@ -31,6 +31,15 @@ class GiphyBridge extends BridgeAbstract {
 		)
 	));
 
+	public function getName()
+	{
+		if (!is_null($this->getInput('s'))) {
+			return $this->getInput('s') . ' - ' . parent::getName();
+		}
+
+		return parent::getName();
+	}
+
 	protected function getGiphyItems($entries){
 		foreach($entries as $entry) {
 			$createdAt = new \DateTime($entry->import_datetime);
@@ -62,9 +71,10 @@ HTML
 		 * but it has severe rate limiting.
 		 *
 		 * https://giphy.api-docs.io/1.0/welcome/access-and-api-keys
-		 * https://giphy.api-docs.io/1.0/gifs/search-1
+		 * https://developers.giphy.com/branch/master/docs/api/endpoint/#search
 		 */
 		$apiKey = 'Gc7131jiJuvI7IdN0HZ1D7nh0ow5BU6g';
+		$bundle = 'low_bandwidth';
 		$limit = min($this->getInput('n') ?: 10, 50);
 		$endpoints = array();
 		if (empty($this->getInput('noGif'))) {
@@ -76,10 +86,11 @@ HTML
 
 		foreach ($endpoints as $endpoint) {
 			$uri = sprintf(
-				'https://api.giphy.com/v1/%s/search?q=%s&limit=%s&api_key=%s',
+				'https://api.giphy.com/v1/%s/search?q=%s&limit=%s&bundle=%s&api_key=%s',
 				$endpoint,
 				rawurlencode($this->getInput('s')),
 				$limit,
+				$bundle,
 				$apiKey
 			);
 
