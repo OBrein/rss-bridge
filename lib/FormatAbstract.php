@@ -24,9 +24,6 @@ abstract class FormatAbstract implements FormatInterface {
 	/** MIME type of format output */
 	const MIME_TYPE = 'text/plain';
 
-	/** @var string|null $contentType The content type */
-	protected $contentType = null;
-
 	/** @var string $charset The charset */
 	protected $charset;
 
@@ -66,18 +63,6 @@ abstract class FormatAbstract implements FormatInterface {
 	}
 
 	/**
-	 * Set the content type
-	 *
-	 * @param string $contentType The content type
-	 * @return self The format object
-	 */
-	protected function setContentType($contentType){
-		$this->contentType = $contentType;
-
-		return $this;
-	}
-
-	/**
 	 * Set the last modified time
 	 *
 	 * @param int $lastModified The last modified time
@@ -85,34 +70,6 @@ abstract class FormatAbstract implements FormatInterface {
 	 */
 	public function setLastModified($lastModified){
 		$this->lastModified = $lastModified;
-	}
-
-	/**
-	 * Send header with the currently specified content type
-	 *
-	 * @throws \LogicException if the content type is not set
-	 * @throws \LogicException if the content type is not a string
-	 *
-	 * @return void
-	 */
-	protected function callContentType(){
-		if(empty($this->contentType))
-			throw new \LogicException('Content-Type is not set!');
-
-		if(!is_string($this->contentType))
-			throw new \LogicException('Content-Type must be a string!');
-
-		header('Content-Type: ' . $this->contentType);
-	}
-
-	/** {@inheritdoc} */
-	public function display(){
-		if ($this->lastModified) {
-			header('Last-Modified: ' . gmdate('D, d M Y H:i:s ', $this->lastModified) . 'GMT');
-		}
-		echo $this->stringify();
-
-		return $this;
 	}
 
 	/**
@@ -173,7 +130,7 @@ abstract class FormatAbstract implements FormatInterface {
 	 * @todo Maybe switch to http://htmlpurifier.org/
 	 * @todo Maybe switch to http://www.bioinformatics.org/phplabware/internal_utilities/htmLawed/index.php
 	 */
-	protected function sanitizeHtml($html)
+	protected function sanitizeHtml(string $html): string
 	{
 		$html = str_replace('<script', '<&zwnj;script', $html); // Disable scripts, but leave them visible.
 		$html = str_replace('<iframe', '<&zwnj;iframe', $html);

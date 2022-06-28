@@ -49,7 +49,7 @@ class JsonFormat extends FormatAbstract {
 			$entryTitle = $item->getTitle();
 			$entryUri = $item->getURI();
 			$entryTimestamp = $item->getTimestamp();
-			$entryContent = $this->sanitizeHtml($item->getContent());
+			$entryContent = $item->getContent() ? $this->sanitizeHtml($item->getContent()) : '';
 			$entryEnclosures = $item->getEnclosures();
 			$entryCategories = $item->getCategories();
 
@@ -120,14 +120,6 @@ class JsonFormat extends FormatAbstract {
 		$json = json_encode($data, JSON_PRETTY_PRINT | JSON_PARTIAL_OUTPUT_ON_ERROR);
 
 		return $json;
-	}
-
-	public function display(){
-		$this
-			->setContentType(self::MIME_TYPE . '; charset=' . $this->getCharset())
-			->callContentType();
-
-		return parent::display();
 	}
 
 	private function isHTML($text) {

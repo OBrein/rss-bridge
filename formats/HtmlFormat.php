@@ -11,7 +11,6 @@ class HtmlFormat extends FormatAbstract {
 
 		// Dynamically build buttons for all formats (except HTML)
 		$formatFac = new FormatFactory();
-		$formatFac->setWorkingDir(PATH_LIB_FORMATS);
 
 		$buttons = '';
 		$links = '';
@@ -135,14 +134,6 @@ EOD;
 		ini_set('mbstring.substitute_character', 'none');
 		$toReturn = mb_convert_encoding($toReturn, $this->getCharset(), 'UTF-8');
 		return $toReturn;
-	}
-
-	public function display() {
-		$this
-			->setContentType(self::MIME_TYPE . '; charset=' . $this->getCharset())
-			->callContentType();
-
-		return parent::display();
 	}
 
 	private function buildButton($format, $query) {
