@@ -24,22 +24,33 @@
  */
 class ConnectivityAction implements ActionInterface
 {
-    public $userData = [];
+    private BridgeFactory $bridgeFactory;
 
-    public function execute()
+    public function __construct()
+    {
+        $this->bridgeFactory = new \BridgeFactory();
+    }
+
+    public function execute(array $request)
     {
         if (!Debug::isEnabled()) {
             returnError('This action is only available in debug mode!', 400);
         }
 
-        if (!isset($this->userData['bridge'])) {
+        if (!isset($request['bridge'])) {
             $this->returnEntryPage();
             return;
         }
 
-        $bridgeName = $this->userData['bridge'];
+        $bridgeName = $request['bridge'];
 
-        $this->reportBridgeConnectivity($bridgeName);
+        $bridgeClassName = $this->bridgeFactory->sanitizeBridgeName($bridgeName);
+
+        if ($bridgeClassName === null) {
+            throw new \InvalidArgumentException('Bridge name invalid!');
+        }
+
+        $this->reportBridgeConnectivity($bridgeClassName);
     }
 
     /**
@@ -52,14 +63,12 @@ class ConnectivityAction implements ActionInterface
      *   "successful": true/false
      * }
      *
-     * @param string $bridgeName Name of the bridge to generate the report for
+     * @param class-string<BridgeInterface> $bridgeClassName Name of the bridge to generate the report for
      * @return void
      */
-    private function reportBridgeConnectivity($bridgeName)
+    private function reportBridgeConnectivity($bridgeClassName)
     {
-        $bridgeFac = new \BridgeFactory();
-
-        if (!$bridgeFac->isWhitelisted($bridgeName)) {
+        if (!$this->bridgeFactory->isWhitelisted($bridgeClassName)) {
             header('Content-Type: text/html');
             returnServerError('Bridge is not whitelisted!');
         }
@@ -67,12 +76,12 @@ class ConnectivityAction implements ActionInterface
         header('Content-Type: text/json');
 
         $retVal = [
-            'bridge' => $bridgeName,
+            'bridge' => $bridgeClassName,
             'successful' => false,
             'http_code' => 200,
         ];
 
-        $bridge = $bridgeFac->create($bridgeName);
+        $bridge = $this->bridgeFactory->create($bridgeClassName);
 
         if ($bridge === false) {
             echo json_encode($retVal);

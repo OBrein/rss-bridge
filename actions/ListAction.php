@@ -14,28 +14,28 @@
 
 class ListAction implements ActionInterface
 {
-    public function execute()
+    public function execute(array $request)
     {
         $list = new StdClass();
         $list->bridges = [];
         $list->total = 0;
 
-        $bridgeFac = new \BridgeFactory();
+        $bridgeFactory = new \BridgeFactory();
 
-        foreach ($bridgeFac->getBridgeNames() as $bridgeName) {
-            $bridge = $bridgeFac->create($bridgeName);
+        foreach ($bridgeFactory->getBridgeClassNames() as $bridgeClassName) {
+            $bridge = $bridgeFactory->create($bridgeClassName);
 
             if ($bridge === false) { // Broken bridge, show as inactive
-                $list->bridges[$bridgeName] = [
+                $list->bridges[$bridgeClassName] = [
                     'status' => 'inactive'
                 ];
 
                 continue;
             }
 
-            $status = $bridgeFac->isWhitelisted($bridgeName) ? 'active' : 'inactive';
+            $status = $bridgeFactory->isWhitelisted($bridgeClassName) ? 'active' : 'inactive';
 
-            $list->bridges[$bridgeName] = [
+            $list->bridges[$bridgeClassName] = [
                 'status' => $status,
                 'uri' => $bridge->getURI(),
                 'donationUri' => $bridge->getDonationURI(),

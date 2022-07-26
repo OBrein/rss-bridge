@@ -65,21 +65,21 @@ EOD;
         $totalActiveBridges = 0;
         $inactiveBridges = '';
 
-        $bridgeFac = new \BridgeFactory();
-        $bridgeList = $bridgeFac->getBridgeNames();
+        $bridgeFactory = new \BridgeFactory();
+        $bridgeClassNames = $bridgeFactory->getBridgeClassNames();
 
-        $formatFac = new FormatFactory();
-        $formats = $formatFac->getFormatNames();
+        $formatFactory = new FormatFactory();
+        $formats = $formatFactory->getFormatNames();
 
-        $totalBridges = count($bridgeList);
+        $totalBridges = count($bridgeClassNames);
 
-        foreach ($bridgeList as $bridgeName) {
-            if ($bridgeFac->isWhitelisted($bridgeName)) {
-                $body .= BridgeCard::displayBridgeCard($bridgeName, $formats);
+        foreach ($bridgeClassNames as $bridgeClassName) {
+            if ($bridgeFactory->isWhitelisted($bridgeClassName)) {
+                $body .= BridgeCard::displayBridgeCard($bridgeClassName, $formats);
                 $totalActiveBridges++;
             } elseif ($showInactive) {
                 // inactive bridges
-                $inactiveBridges .= BridgeCard::displayBridgeCard($bridgeName, $formats, false) . PHP_EOL;
+                $inactiveBridges .= BridgeCard::displayBridgeCard($bridgeClassName, $formats, false) . PHP_EOL;
             }
         }
 

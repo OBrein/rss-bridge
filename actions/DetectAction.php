@@ -14,24 +14,22 @@
 
 class DetectAction implements ActionInterface
 {
-    public $userData = [];
-
-    public function execute()
+    public function execute(array $request)
     {
-        $targetURL = $this->userData['url']
+        $targetURL = $request['url']
             or returnClientError('You must specify a url!');
 
-        $format = $this->userData['format']
+        $format = $request['format']
             or returnClientError('You must specify a format!');
 
-        $bridgeFac = new \BridgeFactory();
+        $bridgeFactory = new \BridgeFactory();
 
-        foreach ($bridgeFac->getBridgeNames() as $bridgeName) {
-            if (!$bridgeFac->isWhitelisted($bridgeName)) {
+        foreach ($bridgeFactory->getBridgeClassNames() as $bridgeClassName) {
+            if (!$bridgeFactory->isWhitelisted($bridgeClassName)) {
                 continue;
             }
 
-            $bridge = $bridgeFac->create($bridgeName);
+            $bridge = $bridgeFactory->create($bridgeClassName);
 
             if ($bridge === false) {
                 continue;
@@ -43,11 +41,11 @@ class DetectAction implements ActionInterface
                 continue;
             }
 
-            $bridgeParams['bridge'] = $bridgeName;
+            $bridgeParams['bridge'] = $bridgeClassName;
             $bridgeParams['format'] = $format;
 
             header('Location: ?action=display&' . http_build_query($bridgeParams), true, 301);
-            die();
+            exit;
         }
 
         returnClientError('No bridge found for given URL: ' . $targetURL);

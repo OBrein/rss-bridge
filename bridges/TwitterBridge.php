@@ -339,7 +339,7 @@ EOD
             $item['timestamp'] = $realtweet->created_at;
             $item['id']        = $realtweet->id_str;
             $item['uri']       = self::URI . $item['username'] . '/status/' . $item['id'];
-            $item['author']    = (isset($tweet->retweeted_status) ? 'RT: ' : '' )
+            $item['author']    = (isset($tweet->retweeted_status) ? 'RT: ' : '')
                          . $item['fullname']
                          . ' (@'
                          . $item['username'] . ')';
@@ -430,7 +430,7 @@ EOD;
                                 $video = null;
                                 $maxBitrate = -1;
                                 foreach ($media->video_info->variants as $variant) {
-                                    $bitRate = isset($variant->bitrate) ? $variant->bitrate : -100;
+                                    $bitRate = $variant->bitrate ?? -100;
                                     if ($bitRate > $maxBitrate) {
                                         $maxBitrate = $bitRate;
                                         $video = $variant->url;
@@ -503,9 +503,9 @@ EOD;
     //This function takes 2 requests, and therefore is cached
     private function getApiKey($forceNew = 0)
     {
-        $cacheFac = new CacheFactory();
+        $cacheFactory = new CacheFactory();
 
-        $r_cache = $cacheFac->create();
+        $r_cache = $cacheFactory->create();
         $r_cache->setScope(get_called_class());
         $r_cache->setKey(['refresh']);
         $data = $r_cache->loadData();
@@ -518,9 +518,9 @@ EOD;
             $refresh = $data;
         }
 
-        $cacheFac = new CacheFactory();
+        $cacheFactory = new CacheFactory();
 
-        $cache = $cacheFac->create();
+        $cache = $cacheFactory->create();
         $cache->setScope(get_called_class());
         $cache->setKey(['api_key']);
         $data = $cache->loadData();
@@ -543,7 +543,7 @@ EOD;
                 }
             }
             if (!$jsLink) {
-                 returnServerError('Could not locate main.js link');
+                returnServerError('Could not locate main.js link');
             }
 
             $jsContent = getContents($jsLink);
@@ -557,7 +557,7 @@ EOD;
 
         $cacheFac2 = new CacheFactory();
 
-        $gt_cache = $cacheFac->create();
+        $gt_cache = $cacheFactory->create();
         $gt_cache->setScope(get_called_class());
         $gt_cache->setKey(['guest_token']);
         $guestTokenUses = $gt_cache->loadData();
@@ -646,7 +646,8 @@ EOD;
                     default:
                         $code = $e->getCode();
                         $data = $e->getMessage();
-                        returnServerError(<<<EOD
+                        returnServerError(
+                            <<<EOD
 Failed to make api call: $api
 HTTP Status: $code
 Errormessage: $data

@@ -79,8 +79,8 @@ function getContents(
         'headers' => $httpHeaders,
         'curl_options' => $curlOptions,
     ];
-    if (defined('PROXY_URL') && !defined('NOPROXY')) {
-        $config['proxy'] = PROXY_URL;
+    if (Configuration::getConfig('proxy', 'url') && !defined('NOPROXY')) {
+        $config['proxy'] = Configuration::getConfig('proxy', 'url');
     }
     if (!Debug::isEnabled() && $cache->getTime()) {
         $config['if_not_modified_since'] = $cache->getTime();
@@ -317,9 +317,9 @@ function getSimpleHTMLDOMCached(
     Debug::log('Caching url ' . $url . ', duration ' . $duration);
 
     // Initialize cache
-    $cacheFac = new CacheFactory();
+    $cacheFactory = new CacheFactory();
 
-    $cache = $cacheFac->create();
+    $cache = $cacheFactory->create();
     $cache->setScope('pages');
     $cache->purgeCache(86400); // 24 hours (forced)
 

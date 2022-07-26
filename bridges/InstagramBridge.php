@@ -14,6 +14,9 @@ class InstagramBridge extends BridgeAbstract
         'cache_timeout' => [
             'required' => false,
         ],
+        'ds_user_id' => [
+            'required' => false,
+        ],
     ];
 
     const PARAMETERS = [
@@ -82,8 +85,9 @@ class InstagramBridge extends BridgeAbstract
     {
         $headers = [];
         $sessionId = $this->getOption('session_id');
-        if ($sessionId) {
-            $headers[] = 'cookie: sessionid=' . $sessionId;
+        $dsUserId = $this->getOption('ds_user_id');
+        if ($sessionId and $dsUserId) {
+            $headers[] = 'cookie: sessionid=' . $sessionId . '; ds_user_id=' . $dsUserId;
         }
         return getContents($uri, $headers);
     }
@@ -94,15 +98,15 @@ class InstagramBridge extends BridgeAbstract
             return $username;
         }
 
-        $cacheFac = new CacheFactory();
+        $cacheFactory = new CacheFactory();
 
-        $cache = $cacheFac->create();
+        $cache = $cacheFactory->create();
         $cache->setScope(get_called_class());
         $cache->setKey([$username]);
         $key = $cache->loadData();
 
         if ($key == null) {
-                $data = $this->getContents(self::URI . 'web/search/topsearch/?query=' . $username);
+            $data = $this->getContents(self::URI . 'web/search/topsearch/?query=' . $username);
             foreach (json_decode($data)->users as $user) {
                 if (strtolower($user->user->username) === strtolower($username)) {
                     $key = $user->user->pk;
@@ -111,7 +115,7 @@ class InstagramBridge extends BridgeAbstract
             if ($key == null) {
                 returnServerError('Unable to find username in search result.');
             }
-                $cache->saveData($key);
+            $cache->saveData($key);
         }
         return $key;
     }

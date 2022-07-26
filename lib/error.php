@@ -56,9 +56,9 @@ function returnServerError($message)
  */
 function logBridgeError($bridgeName, $code)
 {
-    $cacheFac = new CacheFactory();
+    $cacheFactory = new CacheFactory();
 
-    $cache = $cacheFac->create();
+    $cache = $cacheFactory->create();
     $cache->setScope('error_reporting');
     $cache->setkey($bridgeName . '_' . $code);
     $cache->purgeCache(86400); // 24 hours
@@ -78,4 +78,35 @@ function logBridgeError($bridgeName, $code)
     $cache->saveData(json_encode($report));
 
     return $report['count'];
+}
+
+function create_sane_stacktrace(\Throwable $e): array
+{
+    $frames = array_reverse($e->getTrace());
+    $frames[] = [
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+    ];
+    $stackTrace = [];
+    foreach ($frames as $i => $frame) {
+        $file = $frame['file'] ?? '(no file)';
+        $line = $frame['line'] ?? '(no line)';
+        $stackTrace[] = sprintf(
+            '#%s %s:%s',
+            $i,
+            trim_path_prefix($file),
+            $line,
+        );
+    }
+    return $stackTrace;
+}
+
+/**
+ * Trim path prefix for privacy/security reasons
+ *
+ * Example: "/var/www/rss-bridge/index.php" => "index.php"
+ */
+function trim_path_prefix(string $filePath): string
+{
+    return mb_substr($filePath, mb_strlen(dirname(__DIR__)) + 1);
 }

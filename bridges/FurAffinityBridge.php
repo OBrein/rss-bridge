@@ -795,37 +795,37 @@ class FurAffinityBridge extends BridgeAbstract
 
     private function postFASimpleHTMLDOM($data)
     {
-            $opts = [
+        $opts = [
                 CURLOPT_CUSTOMREQUEST => 'POST',
                 CURLOPT_POSTFIELDS => http_build_query($data)
             ];
-            $header = [
+        $header = [
                 'Host: ' . parse_url(self::URI, PHP_URL_HOST),
                 'Content-Type: application/x-www-form-urlencoded',
                 'Cookie: ' . self::FA_AUTH_COOKIE
             ];
 
-            $html = getSimpleHTMLDOM($this->getURI(), $header, $opts);
-            $html = defaultLinkTo($html, $this->getURI());
+        $html = getSimpleHTMLDOM($this->getURI(), $header, $opts);
+        $html = defaultLinkTo($html, $this->getURI());
 
-            return $html;
+        return $html;
     }
 
     private function getFASimpleHTMLDOM($url, $cache = false)
     {
-            $header = [
+        $header = [
                 'Cookie: ' . self::FA_AUTH_COOKIE
             ];
 
-            if ($cache) {
-                $html = getSimpleHTMLDOMCached($url, 86400, $header); // 24 hours
-            } else {
-                $html = getSimpleHTMLDOM($url, $header);
-            }
+        if ($cache) {
+            $html = getSimpleHTMLDOMCached($url, 86400, $header); // 24 hours
+        } else {
+            $html = getSimpleHTMLDOM($url, $header);
+        }
 
-            $html = defaultLinkTo($html, $url);
+        $html = defaultLinkTo($html, $url);
 
-            return $html;
+        return $html;
     }
 
     private function itemsFromJournalList($html, $limit)
@@ -914,10 +914,13 @@ class FurAffinityBridge extends BridgeAbstract
                     $imgURL = 'https:' . $previewSrc;
                 }
 
-                $description = $submissionHTML
-                    ->find('.maintable .maintable tr td.alt1', -1);
-                $this->setReferrerPolicy($description);
-                $description = $description->innertext;
+                $description = $submissionHTML->find('div.submission-description', 0);
+                if ($description) {
+                    $this->setReferrerPolicy($description);
+                    $description = trim($description->innertext);
+                } else {
+                    $description = '';
+                }
 
                 $item['content'] = <<<EOD
 <a href="$submissionURL">

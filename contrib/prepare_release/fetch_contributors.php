@@ -4,6 +4,8 @@
 
 require __DIR__ . '/../../lib/rssbridge.php';
 
+Configuration::loadConfiguration();
+
 $url = 'https://api.github.com/repos/rss-bridge/rss-bridge/contributors';
 $contributors = [];
 $next = true;
@@ -26,7 +28,7 @@ while ($next) { /* Collect all contributors */
 
     // Check if there is a link with 'rel="next"'
     foreach ($links as $link) {
-        list($url, $type) = explode(';', $link, 2);
+        [$url, $type] = explode(';', $link, 2);
 
         if (trim($type) === 'rel="next"') {
             $url = trim(preg_replace('/([<>])/', '', $url));
