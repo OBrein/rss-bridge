@@ -50,24 +50,22 @@ class ZeitBridge extends FeedExpander
             'defaultValue' => 5
         ]
     ]];
-    const LIMIT = 5;
 
     public function collectData()
     {
-        $this->collectExpandableDatas(
-            $this->getInput('category'),
-            $this->getInput('limit') ?: static::LIMIT
-        );
+        $url = $this->getInput('category');
+        $limit = $this->getInput('limit') ?: 5;
+
+        $this->collectExpandableDatas($url, $limit);
     }
 
-    protected function parseItem($item)
+    protected function parseItem(array $item)
     {
-        $item = parent::parseItem($item);
         $item['enclosures'] = [];
 
         $headers = [
             'Cookie: zonconsent=' . date('Y-m-d\TH:i:s.v\Z'),
-            'User-Agent: Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'];
+        ];
 
         // one-page article
         $article = getSimpleHTMLDOM($item['uri'], $headers);

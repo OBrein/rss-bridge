@@ -6,6 +6,27 @@
 
 [system]
 
+; Only these bridges are available for feed production
+; How to enable all bridges: enabled_bridges[] = *
+enabled_bridges[] = CssSelectorBridge
+enabled_bridges[] = FeedMerge
+enabled_bridges[] = FeedReducerBridge
+enabled_bridges[] = Filter
+enabled_bridges[] = GettrBridge
+enabled_bridges[] = MastodonBridge
+enabled_bridges[] = Reddit
+enabled_bridges[] = RumbleBridge
+enabled_bridges[] = SoundcloudBridge
+enabled_bridges[] = Telegram
+enabled_bridges[] = ThePirateBay
+enabled_bridges[] = TikTokBridge
+enabled_bridges[] = Twitch
+enabled_bridges[] = Twitter
+enabled_bridges[] = Vk
+enabled_bridges[] = XPathBridge
+enabled_bridges[] = Youtube
+enabled_bridges[] = YouTubeCommunityTabBridge
+
 ; Defines the timezone used by RSS-Bridge
 ; Find a list of supported timezones at
 ; https://www.php.net/manual/en/timezones.php
@@ -15,8 +36,24 @@ timezone = "UTC"
 ; Display a system message to users.
 message = ""
 
+; Whether to enable debug mode.
+enable_debug_mode = false
+
+; Enable debug mode only for these permitted ip addresses
+; debug_mode_whitelist[] = 127.0.0.1
+; debug_mode_whitelist[] = 192.168.1.10
+
+; Whether to enable maintenance mode. If enabled, feed requests receive 503 Service Unavailable
+enable_maintenance_mode = false
+
 [http]
-timeout = 60
+; Operation timeout in seconds
+timeout = 15
+
+; Operation retry count in case of curl error
+retries = 2
+
+; User agent
 useragent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101 Firefox/102.0"
 
 ; Max http response size in MB
@@ -24,8 +61,7 @@ max_filesize = 20
 
 [cache]
 
-; Defines the cache type used by RSS-Bridge
-; "file" = FileCache (default)
+; Cache type: file, sqlite, memcached, array, null
 type = "file"
 
 ; Allow users to specify custom timeout for specific requests.
@@ -66,21 +102,13 @@ by_bridge = false
 
 [authentication]
 
-; Enables basic authentication for all requests to this RSS-Bridge instance.
-;
-; Warning: You'll have to upgrade existing feeds after enabling this option!
-;
-; true  = enabled
-; false = disabled (default)
+; HTTP basic authentication
 enable = false
-
 username = "admin"
+password = ""
 
-; This default password is public knowledge. Replace it.
-password = "7afbf648a369b261"
-
-; This will be used only for actions that require privileged access
-access_token = ""
+; Token authentication (URL)
+token = ""
 
 [error]
 
@@ -96,8 +124,20 @@ report_limit = 1
 
 ; --- Cache specific configuration ---------------------------------------------
 
+[FileCache]
+; The root folder to store files in.
+; "" = Use the cache folder in the repository (default)
+path = ""
+; Whether to actually delete files when purging. Can be useful to turn off to increase performance.
+enable_purge = true
+
 [SQLiteCache]
+; Filepath of the sqlite db file
 file = "cache.sqlite"
+; Whether to actually delete data when purging
+enable_purge = true
+; Busy wait in ms before timing out
+timeout = 5000
 
 [MemcachedCache]
 host = "localhost"

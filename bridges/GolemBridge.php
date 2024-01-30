@@ -63,9 +63,8 @@ class GolemBridge extends FeedExpander
         );
     }
 
-    protected function parseItem($item)
+    protected function parseItem(array $item)
     {
-        $item = parent::parseItem($item);
         $item['content'] ??= '';
         $uri = $item['uri'];
 
@@ -83,9 +82,12 @@ class GolemBridge extends FeedExpander
             // URI without RSS feed reference
             $item['uri'] = $articlePage->find('head meta[name="twitter:url"]', 0)->content;
 
-            $author = $articlePage->find('article header .authors .authors__name', 0);
-            if ($author) {
-                $item['author'] = $author->innertext;
+            $categories = $articlePage->find('ul.tags__list li');
+            foreach ($categories as $category) {
+                $trimmedcategories[] = trim(html_entity_decode($category->plaintext));
+            }
+            if (isset($trimmedcategories)) {
+                $item['categories'] = array_unique($trimmedcategories);
             }
 
             $item['content'] .= $this->extractContent($articlePage);
@@ -106,17 +108,14 @@ class GolemBridge extends FeedExpander
 
         // delete known bad elements
         foreach (
-            $article->find('div[id*="adtile"], #job-market, #seminars,
-			div.gbox_affiliate, div.toc, .embedcontent') as $bad
+            $article->find('div[id*="adtile"], #job-market, #seminars, iframe,
+			div.gbox_affiliate, div.toc, .embedcontent, script') as $bad
         ) {
             $bad->remove();
         }
         // reload html, as remove() is buggy
         $article = str_get_html($article->outertext);
 
-        if ($pageHeader = $article->find('header.paged-cluster-header h1', 0)) {
-            $item .= $pageHeader;
-        }
 
         $header = $article->find('header', 0);
         foreach ($header->find('p, figure') as $element) {
@@ -130,7 +129,7 @@ class GolemBridge extends FeedExpander
             $img->src = $img->getAttribute('data-src-full');
         }
 
-        foreach ($content->find('p, h1, h3, img[src*="."]') as $element) {
+        foreach ($content->find('p, h1, h2, h3, img[src*="."]') as $element) {
             $item .= $element;
         }
 
