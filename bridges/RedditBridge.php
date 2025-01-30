@@ -10,6 +10,7 @@ class RedditBridge extends BridgeAbstract
     const MAINTAINER = 'dawidsowa';
     const NAME = 'Reddit Bridge';
     const URI = 'https://old.reddit.com';
+    const CACHE_TIMEOUT = 60 * 60 * 2; // 2h
     const DESCRIPTION = 'Return hot submissions from Reddit';
 
     const PARAMETERS = [
@@ -92,12 +93,12 @@ class RedditBridge extends BridgeAbstract
     {
         $forbiddenKey = 'reddit_forbidden';
         if ($this->cache->get($forbiddenKey)) {
-            throw new HttpException('403 Forbidden', 403);
+            throw new RateLimitException();
         }
 
         $rateLimitKey = 'reddit_rate_limit';
         if ($this->cache->get($rateLimitKey)) {
-            throw new HttpException('429 Too Many Requests', 429);
+            throw new RateLimitException();
         }
 
         try {
@@ -107,9 +108,10 @@ class RedditBridge extends BridgeAbstract
                 // 403 Forbidden
                 // This can possibly mean that reddit has permanently blocked this server's ip address
                 $this->cache->set($forbiddenKey, true, 60 * 61);
-            }
-            if ($e->getCode() === 429) {
-                $this->cache->set($rateLimitKey, true, 60 * 16);
+                throw new RateLimitException();
+            } elseif ($e->getCode() === 429) {
+                $this->cache->set($rateLimitKey, true, 60 * 61);
+                throw new RateLimitException();
             }
             throw $e;
         }
@@ -121,7 +123,7 @@ class RedditBridge extends BridgeAbstract
         $comments = false;
         $frontend = $this->getInput('frontend');
         if ($frontend == '') {
-                $frontend = 'https://old.reddit.com';
+            $frontend = 'https://old.reddit.com';
         }
         $section = $this->getInput('d');
 
@@ -139,37 +141,18 @@ class RedditBridge extends BridgeAbstract
                 break;
         }
 
-        if (!($this->getInput('search') === '')) {
-            $keywords = $this->getInput('search');
-            $keywords = str_replace([',', ' '], '%20', $keywords);
-            $keywords = $keywords . '%20';
-        } else {
-            $keywords = '';
-        }
-
-        if (!empty($this->getInput('f')) && $this->queriedContext == 'single') {
-            $flair = $this->getInput('f');
-            $flair = str_replace(' ', '%20', $flair);
-            $flair = 'flair%3A%22' . $flair . '%22%20';
-        } else {
-            $flair = '';
-        }
+        $search = $this->getInput('search');
+        $flareInput = $this->getInput('f');
 
         foreach ($subreddits as $subreddit) {
-            $name = trim($subreddit);
-            $url = self::URI
-                . '/search.json?q='
-                . $keywords
-                . $flair
-                . ($user ? 'author%3A' : 'subreddit%3A')
-                . $name
-                . '&sort='
-                . $this->getInput('d')
-                . '&include_over_18=on';
-
-            $version = 'v0.0.1';
+            $version = 'v0.0.2';
             $useragent = "rss-bridge $version (https://github.com/RSS-Bridge/rss-bridge)";
-            $json = getContents($url, ['User-Agent: ' . $useragent]);
+            $url = self::createUrl($search, $flareInput, $subreddit, $user, $section, $this->queriedContext);
+
+            $response = getContents($url, ['User-Agent: ' . $useragent], [], true);
+
+            $json = $response->getBody();
+
             $parsedJson = Json::decode($json, false);
 
             foreach ($parsedJson->data->children as $post) {
@@ -212,7 +195,7 @@ class RedditBridge extends BridgeAbstract
                     // Comment
 
                     $item['content'] = htmlspecialchars_decode($data->body_html);
-                } elseif ($data->is_self) {
+                } elseif ($data->is_self && isset($data->selftext_html)) {
                     // Text post
 
                     $item['content'] = htmlspecialchars_decode($data->selftext_html);
@@ -251,11 +234,14 @@ class RedditBridge extends BridgeAbstract
                 } elseif ($data->is_video) {
                     // Video
 
-                    // Higher index -> Higher resolution
-                    end($data->preview->images[0]->resolutions);
-                    $index = key($data->preview->images[0]->resolutions);
-
-                    $item['content'] = $this->createFigureLink($data->url, $data->preview->images[0]->resolutions[$index]->url, 'Video');
+                    if ($data->media->reddit_video) {
+                        $item['content'] = $this->createVideoContent($data->media->reddit_video);
+                    } else {
+                        // Higher index -> Higher resolution
+                        end($data->preview->images[0]->resolutions);
+                        $index = key($data->preview->images[0]->resolutions);
+                        $item['content'] = $this->createFigureLink($data->url, $data->preview->images[0]->resolutions[$index]->url, 'Video');
+                    }
                 } elseif (isset($data->media) && $data->media->type == 'youtube.com') {
                     // Youtube link
                     $item['content'] = $this->createFigureLink($data->url, $data->media->oembed->thumbnail_url, 'YouTube');
@@ -276,6 +262,32 @@ class RedditBridge extends BridgeAbstract
         usort($this->items, function ($a, $b) {
             return $b['timestamp'] <=> $a['timestamp'];
         });
+    }
+
+    public static function createUrl($search, $flareInput, $subreddit, bool $user, $section, $queriedContext): string
+    {
+        if ($search === '') {
+            $keywords = '';
+        } else {
+            $keywords = $search;
+            $keywords = str_replace([',', ' '], ' ', $keywords);
+            $keywords = $keywords . ' ';
+        }
+
+        if ($flareInput && $queriedContext == 'single') {
+            $flair = $flareInput;
+            $flair = str_replace([',', ' '], ' ', $flair);
+            $flair = 'flair:"' . $flair . '" ';
+        } else {
+            $flair = '';
+        }
+        $name = trim($subreddit);
+        $query = [
+            'q' => $keywords . $flair . ($user ? 'author:' : 'subreddit:') . $name,
+            'sort' => $section,
+            'include_over_18' => 'on',
+        ];
+        return 'https://old.reddit.com/search.json?' . http_build_query($query);
     }
 
     public function getIcon()
@@ -307,6 +319,16 @@ class RedditBridge extends BridgeAbstract
     private function createLink($href, $text)
     {
         return sprintf('<a href="%s">%s</a>', $href, $text);
+    }
+
+    private function createVideoContent(\stdClass $video): string
+    {
+        return <<<HTML
+            <video width="$video->width" height="$video->height" controls>
+                <source src="$video->fallback_url" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        HTML;
     }
 
     public function detectParameters($url)

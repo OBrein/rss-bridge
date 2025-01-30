@@ -92,7 +92,7 @@ final class FeedParser
             $item['uri'] = (string)$feedItem->id;
         }
         if (isset($feedItem->title)) {
-            $item['title'] = html_entity_decode((string)$feedItem->title);
+            $item['title'] = trim(html_entity_decode((string)$feedItem->title));
         }
         if (isset($feedItem->updated)) {
             $item['timestamp'] = strtotime((string)$feedItem->updated);
@@ -154,7 +154,7 @@ final class FeedParser
             $item['uri'] = (string)$feedItem->link;
         }
         if (isset($feedItem->title)) {
-            $item['title'] = html_entity_decode((string)$feedItem->title);
+            $item['title'] = trim(html_entity_decode((string)$feedItem->title));
         }
         if (isset($feedItem->description)) {
             $item['content'] = (string)$feedItem->description;
@@ -167,8 +167,14 @@ final class FeedParser
         if (isset($namespaces['media'])) {
             $media = $feedItem->children($namespaces['media']);
         }
+
+        if (isset($namespaces['content'])) {
+            $content = $feedItem->children($namespaces['content']);
+            $item['content'] = (string) $content;
+        }
+
         foreach ($namespaces as $namespaceName => $namespaceUrl) {
-            if (in_array($namespaceName, ['', 'content', 'media'])) {
+            if (in_array($namespaceName, ['', 'content'])) {
                 continue;
             }
             $item[$namespaceName] = $this->parseModule($feedItem, $namespaceName, $namespaceUrl);
@@ -244,11 +250,17 @@ final class FeedParser
 
     private function parseModule(\SimpleXMLElement $element, string $namespaceName, string $namespaceUrl): array
     {
+        // Unfortunately this parses out only node values as string
+        // TODO: parse attributes too
+
         $result = [];
         $module = $element->children($namespaceUrl);
         foreach ($module as $name => $value) {
-            // todo: add custom parsing if it's something other than a string
-            $result[$name] = (string) $value;
+            if (get_class($value) === 'SimpleXMLElement' && $value->count() !== 0) {
+                $result[$name] = $this->parseModule($value, $namespaceName, $namespaceUrl);
+            } else {
+                $result[$name] = (string) $value;
+            }
         }
         return $result;
     }
